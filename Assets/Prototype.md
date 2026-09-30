@@ -23,14 +23,27 @@ heading before movement, then follows the player in LateUpdate. Pitch is limited
 to keep the camera above the flat ground. Camera obstruction handling is outside
 this milestone.
 
-The scene uses a capsule player and a 40-by-40 cube ground with a BoxCollider.
-Both use Unity's existing URP default material. The existing camera, lighting,
-and global volume are reused. Keyboard and mouse are read through the installed
+The scene uses a primitive Hanuman prototype under `Player/Visual` and a
+40-by-40 cube ground with a BoxCollider. The Player root keeps the existing
+CharacterController and movement script; Visual contains only transforms,
+primitive meshes, and renderers, with no colliders or gameplay scripts.
+The white body, muzzle, ears, limbs, curved segmented tail, gold crown and waist
+decoration use four shared URP Simple Lit materials in `Assets/Materials`.
+The model faces local +Z and follows the Player root's existing rotation.
+The existing camera, lighting, and global volume are reused without adjustments.
+Keyboard and mouse are read through the installed
 Input System; the template input-actions asset is not needed by this prototype.
+
+This is a static blockout with no limb or tail animation. The crown and tail
+extend beyond the unchanged gameplay capsule and do not collide independently.
+Replace the entire `Visual` child with the future rigged model, preserving the
+root controller, local +Z forward, and feet at local Y = -1. The four prototype
+materials can then be replaced or removed when no longer referenced.
 
 ## Manual play check
 
-1. Confirm the capsule settles on the ground and remains stable while idle.
+1. Confirm Hanuman settles on the ground and remains stable while idle. Check
+   the muzzle and ears from the front, and crown, limbs, and curled tail from behind.
 2. Move in all four directions; check diagonal travel is no faster than straight travel.
 3. Hold Left Shift while moving and confirm the speed increases.
 4. Tap Space: confirm one jump, a fall, and a stable landing. Try Space again in
