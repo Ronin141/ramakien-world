@@ -1,6 +1,9 @@
 # Milestone 2 home verification
 
-Status: **Unity unavailable during implementation. Every check below is untested.**
+Status: **Every runtime/visual check below remains untested.** Earlier work was
+implemented without Unity. During the procedural-locomotion addition, Unity was
+already open on this project, but its Game view/Play Mode was not controlled or
+visually verified. Source/scene checks do not count as visual passes.
 Use Unity **6000.6.3f1** (ProjectVersion.txt). Open
 `Assets/Scenes/SampleScene.unity`, allow script import, select `Player`, and
 inspect `ThirdPersonPlayer`. Enter Play Mode and click the Game view to capture
@@ -8,6 +11,102 @@ input. Keep the Player Inspector visible/locked while playing. The new
 **Runtime Movement (Read Only)** panel requires no component assignment.
 Stop Play Mode to recover after falling off the test ground; there is no respawn.
 Make temporary tuning changes in Play Mode and record useful values before stopping.
+
+## Procedural locomotion on the existing modular character
+
+`SampleScene` now has `ProceduralLocomotionAnimator` on **Player**, already wired
+to the existing four limb groups, Visual and Tail. Let Unity import the new script
+and reload SampleScene from disk if it was already open; do not overwrite the disk
+changes with an older in-memory scene. No manual component/reference assignment is
+needed for this scene. Select Player to tune the component. Assign references
+before Play Mode; stop Play Mode before replacing a limb/model or reassigning refs.
+
+The component reads `ThirdPersonPlayer.HorizontalSpeed` and `IsGrounded` in
+LateUpdate, after movement's Update. The speed is actual controller motion after
+collision resolution and excludes vertical velocity. There is no input polling,
+movement command, extra ground probe, Animator, clip, rig or package dependency.
+The existing `PlayerAnimationDriver` inspection helper remains optional and is
+not needed by this component.
+
+Four whole limb roots rotate relative to their cached Awake local rotations.
+The existing roots originally shared Visual's origin; their pivots were moved to
+the shoulder/hip attachment points, with equal opposite child-position offsets.
+The hierarchy, mesh rotations/scales and reference-pose appearance are preserved.
+Hands, feet and decorations follow their limb parent without separate animation.
+
+| Reference under Player/Visual | New root local position | Swing axis |
+| --- | --- | --- |
+| LeftArm | (-0.3, 0.4, 0) | Local +X |
+| RightArm | (0.3, 0.4, 0) | Local +X |
+| LeftLeg | (-0.155, -0.27, 0) | Local +X |
+| RightLeg | (0.155, -0.27, 0) | Local +X |
+
+These roots have identity local rotations, +Y up and +Z forward, so local X
+produces forward/backward swinging. Each axis is separately configurable for
+reuse on differently oriented limb roots. Positive X swings a hanging limb back;
+negative X swings it forward. Left leg/right arm share one sinusoidal phase;
+right leg/left arm use the opposite phase.
+
+| Inspector setting | Default |
+| --- | --- |
+| Walk / Run Leg Swing | 25 / 40 degrees |
+| Walk / Run Arm Swing | 20 / 35 degrees |
+| Walk / Run Frequency | 6 / 10.5 radians/sec |
+| Walk / Run Reference Speed | 4 / 7 units/sec (visual calibration only) |
+| Moving Speed Threshold | 0.05 units/sec |
+| Animation Smoothness | 16 per second |
+| Body Bob Enabled / Amount | Enabled / 0.03 units |
+| Jump Arm / Leg Angle | +20 / -15 degrees relative to idle |
+| Tail Sway Enabled / Amount | Enabled / 2 degrees about Tail-local Y |
+
+Ground locomotion amount is horizontal speed / walk reference speed, clamped to
+0..1, with the idle threshold removing contact noise. Walk-to-run amplitude and
+frequency interpolate continuously between the reference speeds. Below walk
+speed, both amplitude and frequency reduce with actual speed; above run speed,
+they cap at run values (including the existing dash). Calibration changes do not
+alter gameplay speeds; update the reference values if movement tuning later changes.
+
+Idle, takeoff and landing use exponential Quaternion.Slerp blending. The phase
+pauses in the air and at rest, and is wrapped each cycle. Airborne legs pull
+forward slightly and arms pull backward. Visual gets a small upward-only bob
+twice per cycle, relative to its cached local position; disabling bob or stopping
+returns it smoothly to that position. Body itself is not animated independently.
+Tail's existing root receives a subtle relative yaw; its hierarchy is unchanged.
+Optional refs can be empty. Missing required limbs warn once at initialization
+and are skipped; duplicate/overlapping roots and refs outside Player are rejected.
+Disabling the component restores the cached pose immediately; normal gameplay
+transitions are smooth. Re-enabling does not recache an animated pose.
+
+For earlier static Visual-identity/art checks below, disable this component or
+inspect outside Play Mode. Visual has its original identity transform at rest;
+the runtime bob intentionally offsets only Visual vertically during locomotion.
+
+- [ ] Not tested — Walking visibly alternates arms and legs.
+- [ ] Not tested — Left arm moves opposite left leg; left leg and right arm move together.
+- [ ] Not tested — Running increases gait speed/amplitude; walk/run changes blend smoothly.
+- [ ] Not tested — Character returns smoothly to idle pose after releasing movement.
+- [ ] Not tested — Jumping changes to airborne pose from idle, walk and run; walking off the edge uses the same pose.
+- [ ] Not tested — Landing resumes locomotion cleanly, or returns to idle if stationary.
+- [ ] Not tested — Existing WASD/run/jump behavior is unchanged; repeat camera and dash regressions above/below.
+- [ ] Not tested — No limb snaps or accumulative rotation drift after prolonged movement, repeated jumps, turns and walk/run switches.
+- [ ] Not tested — Inspect side/front views: shoulders and hips remain attached, forward/backward swing looks natural, and feet do not visibly penetrate the floor excessively.
+- [ ] Not tested — Body bob and tail sway remain subtle; toggle each independently and confirm smooth return to its cached pose, with Player/controller/camera unaffected.
+- [ ] Not tested — Disable/re-enable the animator in Play Mode: idle pose restores, then animation resumes without drift or movement changes.
+- [ ] Not tested — In a temporary scene copy, clear optional refs and one required limb before Play Mode: remaining limbs animate, the missing limb warns clearly, and no NullReferenceException occurs. Restore references afterward.
+
+Limitations: rigid limb groups have no knee/elbow articulation, foot planting or
+ground IK, so some foot sliding/clearance variation is expected. Visual timing,
+joint continuity, jump silhouette and ground clearance still require Game-view
+review. Tail sway rotates its original group origin and should stay very small.
+No automated/static check substitutes for these visual checks.
+
+Implementation checks completed: all four runtime scripts compiled offline against
+the installed Unity 6000.6.3f1 and existing Input System assemblies (CS0649 for
+Inspector-assigned fields suppressed; other warnings treated as errors). Scene
+comparison verified unchanged reference-pose world origins for all 78 non-pivot
+transforms, unchanged existing rotations/scales/hierarchy/renderers, valid animator
+references, and unchanged movement/camera/driver sources. `git diff --check` passed.
+These checks do not establish Unity scene-import or Play Mode results.
 
 ## Exact checklist
 
