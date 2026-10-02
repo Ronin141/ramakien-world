@@ -55,6 +55,14 @@ state. Dash takes state priority, while `IsGrounded` still reports contact.
 and includes ground stick. Cooldown remaining includes any active dash time.
 No Animator or animation assets have been added.
 
+Milestone 2 also exposes `NormalizedMovementSpeed`, `VerticalVelocity` (with
+`VerticalSpeed` retained as an alias), `IsMoving`, `IsRunning`, `IsJumping`, and
+`IsFalling`. Select Player in Play Mode to see the read-only Runtime Movement
+panel. State thresholds are configurable; their defaults preserve the previous
+classification. See [the home checklist](../Docs/MILESTONE_2_HOME_TEST.md) for
+exact parameter semantics and pending checks, and
+[office progress](../Docs/OFFICE_PROGRESS.md) for this session's changes.
+
 `Scripts/ThirdPersonCamera.cs` owns mouse orbit and cursor capture. It updates
 heading before movement, then follows the player in LateUpdate. Pitch is limited
 to keep the camera above the flat ground. Camera obstruction handling is outside

@@ -6,6 +6,8 @@ namespace RamakienWorld
     [RequireComponent(typeof(CharacterController))]
     public sealed class ThirdPersonPlayer : MonoBehaviour
     {
+        // Walk/Run/Jump/Fall represent Moving/Running/Jumping/Falling.
+        // Keep the existing names and ordering for compatibility with consumers.
         public enum MovementState { Idle, Walk, Run, Jump, Fall, Land, Dash }
 
         [Header("Movement")]
@@ -31,12 +33,36 @@ namespace RamakienWorld
         [SerializeField, Min(0f), Tooltip("Recovery time after a dash ends.")]
         private float dashCooldown = 0.8f;
 
+        [Header("Movement State")]
+        [SerializeField, Min(0.001f), Tooltip("Actual horizontal speed below which the character is idle (units/sec).")]
+        private float movingSpeedThreshold = 0.05f;
+        [SerializeField, Min(0f), Tooltip("Speed above walk speed required for the Run state (units/sec).")]
+        private float runSpeedThreshold = 0.1f;
+
         // Read after Update (e.g. in an Animator driver's LateUpdate).
         public MovementState State { get; private set; }
         public Vector3 Velocity { get; private set; }
         public float HorizontalSpeed { get; private set; }
-        public float VerticalSpeed => verticalSpeed;
+        // Actual speed normalized to the faster configured locomotion speed.
+        // Dash/airborne speeds above that reference clamp to one.
+        public float NormalizedMovementSpeed
+        {
+            get
+            {
+                float maxSpeed = Mathf.Max(walkSpeed, runSpeed);
+                return maxSpeed > 0f ? Mathf.Clamp01(HorizontalSpeed / maxSpeed) : 0f;
+            }
+        }
+        // Gravity accumulator, including negative ground-stick velocity at rest.
+        public float VerticalVelocity => verticalSpeed;
+        public float VerticalSpeed => VerticalVelocity;
         public bool IsGrounded { get; private set; }
+        public bool IsMoving => HorizontalSpeed >= movingSpeedThreshold;
+        // Ground locomotion state, not the Shift key; false during Land/Dash/airtime.
+        public bool IsRunning => State == MovementState.Run;
+        // Independent of presentation state so airborne Dash still exposes its phase.
+        public bool IsJumping => !IsGrounded && verticalSpeed > 0f;
+        public bool IsFalling => !IsGrounded && verticalSpeed <= 0f;
         public bool IsDashing => dashTimeRemaining > 0f;
         public bool JustLanded { get; private set; }
         public float DashCooldownRemaining => dashRecoveryRemaining;
@@ -80,6 +106,7 @@ namespace RamakienWorld
             }
 
             float deltaTime = Time.deltaTime;
+            JustLanded = false;
             if (deltaTime <= 0f)
                 return;
 
@@ -149,19 +176,27 @@ namespace RamakienWorld
             if (JustLanded)
                 landTimeRemaining = landStateDuration;
 
+            UpdateMovementState(dashedThisFrame);
+        }
+
+        private void UpdateMovementState(bool dashedThisFrame)
+        {
+            // Publish measured motion only after collision resolution.
             Velocity = controller.velocity;
             HorizontalSpeed = new Vector2(Velocity.x, Velocity.z).magnitude;
             State = dashedThisFrame ? MovementState.Dash
                 : !IsGrounded ? (verticalSpeed > 0f ? MovementState.Jump : MovementState.Fall)
                 : landTimeRemaining > 0f ? MovementState.Land
-                : HorizontalSpeed < 0.05f ? MovementState.Idle
-                : HorizontalSpeed > walkSpeed + 0.1f ? MovementState.Run
+                : !IsMoving ? MovementState.Idle
+                : HorizontalSpeed > walkSpeed + runSpeedThreshold ? MovementState.Run
                 : MovementState.Walk;
         }
 
         private void OnValidate()
         {
             gravity = Mathf.Min(gravity, -0.01f);
+            movingSpeedThreshold = Mathf.Max(0.001f, movingSpeedThreshold);
+            runSpeedThreshold = Mathf.Max(0f, runSpeedThreshold);
         }
     }
 }
