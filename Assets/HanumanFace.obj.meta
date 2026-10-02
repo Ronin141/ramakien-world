@@ -1,0 +1,46 @@
+fileFormatVersion: 2
+guid: f185daf9b53e47d8af4c761066458f27
+ModelImporter:
+  serializedVersion: 22200
+  internalIDToNameTable:
+  - first:
+      43: 4300000
+    second: Skull
+  - first:
+      43: 4300002
+    second: Muzzle
+  - first:
+      43: 4300004
+    second: Jaw
+  - first:
+      43: 4300006
+    second: Eye
+  - first:
+      43: 4300008
+    second: Ear
+  - first:
+      43: 4300010
+    second: Wedge
+  - first:
+      43: 4300012
+    second: Point
+  externalObjects: {}
+  materials:
+    materialImportMode: 0
+  meshes:
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useFileScale: 0
+    isReadable: 0
+    weldVertices: 1
+    bakeAxisConversion: 0
+    generateSecondaryUV: 0
+  tangentSpace:
+    normalImportMode: 0
+    tangentImportMode: 2
+  importAnimation: 0
+  animationType: 0
+  userData: Original prototype geometry; shared meshes only, no runtime generation.
+  assetBundleName: 
+  assetBundleVariant: 
